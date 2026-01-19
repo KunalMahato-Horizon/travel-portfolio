@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== THEME VARIABLES ===== */
+
+/* Light Theme (default) */
+:root {
+  --bg: #ffffff;
+  --text: #111111;
+  --muted: #6b7280; /* gray-500 */
+  --border: #e5e7eb; /* gray-200 */
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  --bg: #0f172a;     /* slate-900 */
+  --text: #f8fafc;   /* slate-50 */
+  --muted: #94a3b8;  /* slate-400 */
+  --border: #1e293b; /* slate-800 */
+}
+
+/* Apply variables */
+body {
+  background-color: var(--bg);
+  color: var(--text);
+}
