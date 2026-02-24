@@ -10,6 +10,20 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
+
+// Optimize Cloudinary image URL
+const optimizeCloudinary = (url, isMobile) => {
+  if (!url || !url.includes("/upload/")) return url;
+
+  const width = isMobile ? 600 : 1200;
+
+  return url.replace(
+    "/upload/",
+    `/upload/f_auto,q_auto,w_${width}/`
+  );
+};
+
+
 /* Local metadata layer (Layer-1 system) - Enhanced with all UI properties */
 const PLACE_META = {
   somnath: {
@@ -178,7 +192,7 @@ function DestinationsSection() {
     window.addEventListener('resize', checkMobile);
     
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [isMobile]);
 
   // Fallback data in case backend fails
   const fallbackDestinations = [
@@ -250,42 +264,55 @@ function DestinationsSection() {
         const data = await response.json();
 
         const transformedDestinations =
-          data.destinations?.map((dest, index) => {
-            const meta =
-              PLACE_META[dest.slug] ||
-              PLACE_META[dest.name?.toLowerCase()] ||
-              {};
+data.destinations?.map((dest, index) => {
+  const meta =
+    PLACE_META[dest.slug] ||
+    PLACE_META[dest.name?.toLowerCase()] ||
+    {};
 
-            return {
-              id: index,
-              name: dest.name || "Unknown",
-              slug: dest.slug || dest.name?.toLowerCase(),
-              image:
-                dest.image ||
-                `https://source.unsplash.com/random/800x600?temple${index}`,
-              photos: dest.photos || Math.floor(Math.random() * 50) + 20,
-              ...meta,
-              stats: {
-                duration: meta.idealDuration || "2 days",
-                photos: dest.photos || Math.floor(Math.random() * 50) + 20,
-                elevation: meta.stats?.elevation || "—",
-              },
-              date: meta.date || "2024",
-              journeyTime: meta.journeyTime || "—",
-              temperature: meta.temperature || "25°C",
-              season: meta.season || "All seasons",
-              bestTime: meta.bestTime || "Oct–Mar",
-              idealDuration: meta.idealDuration || "2–3 days",
-              spiritualSignificance:
-                meta.spiritualSignificance || "Sacred Site",
-              highlights:
-                meta.highlights || [
-                  "Spiritual Experience",
-                  "Cultural Heritage",
-                  "Historical Significance",
-                ],
-            };
-          }) || [];
+  // ✅ Declare variables FIRST
+  const rawImage =
+    dest.image ||
+    `https://source.unsplash.com/random/800x600?temple${index}`;
+
+  const optimizedImage = optimizeCloudinary(rawImage, isMobile);
+
+  // ✅ Then return object
+  return {
+    id: index,
+    name: dest.name || "Unknown",
+    slug: dest.slug || dest.name?.toLowerCase(),
+
+    image: optimizedImage, // ✅ use optimized image
+
+    photos: dest.photos || Math.floor(Math.random() * 50) + 20,
+
+    ...meta,
+
+    stats: {
+      duration: meta.idealDuration || "2 days",
+      photos: dest.photos || Math.floor(Math.random() * 50) + 20,
+      elevation: meta.stats?.elevation || "—",
+    },
+
+    date: meta.date || "2024",
+    journeyTime: meta.journeyTime || "—",
+    temperature: meta.temperature || "25°C",
+    season: meta.season || "All seasons",
+    bestTime: meta.bestTime || "Oct–Mar",
+    idealDuration: meta.idealDuration || "2–3 days",
+
+    spiritualSignificance:
+      meta.spiritualSignificance || "Sacred Site",
+
+    highlights:
+      meta.highlights || [
+        "Spiritual Experience",
+        "Cultural Heritage",
+        "Historical Significance",
+      ],
+  };
+}) || [];
 
         if (transformedDestinations.length > 0) {
           setDestinations(transformedDestinations);

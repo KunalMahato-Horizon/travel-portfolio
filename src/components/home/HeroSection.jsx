@@ -81,7 +81,18 @@ function Hero() {
         
         // Check the actual response structure
         if (data.images && Array.isArray(data.images)) {
-          imageUrls = data.images.map(img => img.secure_url);
+          const targetWidth = isMobile ? 600 : 1600;
+
+          imageUrls = data.images.map(img => {
+            if (!img.secure_url.includes("/upload/")) {
+              return img.secure_url; // safety fallback
+            }
+
+            return img.secure_url.replace(
+              "/upload/",
+              `/upload/f_auto,q_auto,w_${targetWidth}/`
+            );
+          });
         } else if (data.image) {
           imageUrls = [data.image.secure_url || data.image.url];
         } else {
@@ -123,7 +134,7 @@ function Hero() {
     };
 
     fetchHeroImages();
-  }, []);
+  }, [isMobile]);
 
   // 🔹 AUTO SLIDE EFFECT WITH REDUCED MOTION SUPPORT
   useEffect(() => {

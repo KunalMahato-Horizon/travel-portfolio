@@ -11,6 +11,21 @@ import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motio
 // API Configuration
 const API_BASE_URL = "http://localhost:5000/api";
 
+
+// Optimize Cloudinary image URL
+const optimizeCloudinary = (url, isMobile) => {
+  if (!url || !url.includes("/upload/")) return url;
+
+  const width = isMobile ? 600 : 1200;
+
+  return url.replace(
+    "/upload/",
+    `/upload/f_auto,q_auto,w_${width}/`
+  );
+};
+
+
+
 function GallerySection() {
   // State for gallery data
   const [galleryImages, setGalleryImages] = useState([]);
@@ -42,7 +57,7 @@ function GallerySection() {
     window.addEventListener('resize', checkMobile);
     
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [isMobile]);
 
   // Helper function to get layout class for masonry grid - RESPONSIVE VERSION
   const getLayoutClass = (index) => {
@@ -120,13 +135,15 @@ function GallerySection() {
         const formattedImages = imagesArray.map((img, index) => {
           const layout = getLayoutClass(index);
 
-          const imageUrl =
+          const rawUrl =
             img.image ||
             img.imageUrl ||
             img.url ||
             img.src ||
             img.photo ||
             `https://via.placeholder.com/600x800?text=Image+${index + 1}`;
+
+          const imageUrl = optimizeCloudinary(rawUrl, isMobile);
 
           const location =
             img.location ||

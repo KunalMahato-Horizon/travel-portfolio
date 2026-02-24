@@ -206,7 +206,7 @@ function JourneysSection() {
     window.addEventListener('resize', checkMobile);
     
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [isMobile]);
 
   // 🔹 NEUTRAL FALLBACK IMAGES
   const getFallbackImage = (journey) => {
@@ -224,42 +224,60 @@ function JourneysSection() {
   };
 
   // 🔹 FETCH CLOUDINARY IMAGES WITH FALLBACK
-  useEffect(() => {
-    const fetchCloudinaryImages = async () => {
-      try {
-        setImagesLoading(true);
-        // Use environment variable with fallback
-        const API_URL = process.env.REACT_APP_API_URL || "https://travel-portfolio-backend.vercel.app";
-        const response = await fetch(`${API_URL}/api/journeys`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          
-          if (data.journeys && Array.isArray(data.journeys)) {
-            const imageMap = {};
-            // Validate and preload images
-            for (const journey of data.journeys) {
-              if (journey.slug && journey.image) {
-                try {
-                  await loadImage(journey.image);
-                  imageMap[journey.slug] = journey.image;
-                } catch (err) {
-                  console.warn(`Failed to load image for ${journey.slug}`);
-                }
-              }
-            }
-            setCloudinaryImages(imageMap);
-          }
-        }
-      } catch (error) {
-        console.log("Cloudinary images not available, using fallbacks");
-      } finally {
-        setImagesLoading(false);
-      }
-    };
+// 🔹 FETCH CLOUDINARY IMAGES (FAST VERSION)
+useEffect(() => {
+  const fetchCloudinaryImages = async () => {
+    try {
+      setImagesLoading(true);
 
+      const API_URL =
+        process.env.REACT_APP_API_URL ||
+        "https://travel-portfolio-backend.vercel.app";
+
+      const response = await fetch(`${API_URL}/api/journeys`);
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      if (!data.journeys || !Array.isArray(data.journeys)) return;
+
+      const imageMap = {};
+
+      data.journeys.forEach((journey) => {
+        if (journey.slug && journey.image) {
+          const targetWidth = isMobile ? 700 : 1400;
+
+          let finalUrl = journey.image;
+
+          // Optimize Cloudinary URL
+          if (journey.image.includes("/upload/")) {
+            finalUrl = journey.image.replace(
+              "/upload/",
+              `/upload/f_auto,q_auto,w_${targetWidth}/`
+            );
+          }
+
+          // Save URL
+          imageMap[journey.slug] = finalUrl;
+
+          // Preload in background (no waiting)
+          loadImage(finalUrl).catch(() => {});
+        }
+      });
+
+      setCloudinaryImages(imageMap);
+    } catch (err) {
+      console.log("Cloudinary images not available, using fallbacks");
+    } finally {
+      setImagesLoading(false);
+    }
+  };
+
+  if (isMobile !== null) {
     fetchCloudinaryImages();
-  }, []);
+  }
+}, [isMobile]);
 
   const selectedJourney = journeys.find(j => j.id === activeJourney) || journeys[0];
 
