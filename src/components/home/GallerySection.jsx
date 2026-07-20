@@ -1,190 +1,116 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { 
-  X, ChevronLeft, ChevronRight,
-  Camera, MapPin, Calendar, Eye,
-  Download, Share2,
-  Loader2, WifiOff,
-  Menu, Grid, List // Added responsive icons
+  MapPin, Calendar, Camera, Globe, 
+  X, ArrowLeft, ArrowRight, 
+  ChevronDown, ChevronUp, BookOpen, 
+  Feather, Heart,
+  Compass,
 } from "lucide-react";
-import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
-// API Configuration
-const API_BASE_URL = "http://localhost:5000/api";
-
-
-// Optimize Cloudinary image URL
+// ✅ Optimized Cloudinary function with better sizing
 const optimizeCloudinary = (url, isMobile) => {
   if (!url || !url.includes("/upload/")) return url;
-
+  // Smaller images for faster loading
   const width = isMobile ? 600 : 1200;
-
-  return url.replace(
-    "/upload/",
-    `/upload/f_auto,q_auto,w_${width}/`
-  );
+  return url.replace("/upload/", `/upload/f_auto,q_auto,w_${width}/`);
 };
 
-
+// ✅ Memoized shuffle function
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
 
 function GallerySection() {
-  // State for gallery data
   const [galleryImages, setGalleryImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [imageStats, setImageStats] = useState({});
-
-  // UI states
   const [selectedImage, setSelectedImage] = useState(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [visibleCount, setVisibleCount] = useState(12);
-  const [gridView, setGridView] = useState(true); // For mobile toggle between grid/list
   const [isMobile, setIsMobile] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(7);
   
-  const containerRef = useRef(null);
+  const ease = [0.16, 1, 0.3, 1];
 
-  const cursorX = useMotionValue(0);
-  const cursorY = useMotionValue(0);
-  const springX = useSpring(cursorX, { stiffness: 500, damping: 30 });
-  const springY = useSpring(cursorY, { stiffness: 500, damping: 30 });
+  // ✅ Memoized poetic descriptions
+  const poeticLines = useMemo(() => [
+    "In the silence of ancient stones, wisdom whispers through time",
+    "Where the Ganga flows, eternity finds its voice",
+    "Beneath the cosmic sky, devotion becomes a dance",
+    "In the heart of the city, dreams meet the divine",
+    "Where love blooms, the universe conspires",
+    "On the sacred peak, peace descends like morning mist",
+    "In the palace of light, royalty finds its reflection",
+    "Through the arch of time, faith walks eternal",
+    "Where the ocean meets the sky, prayers find their way",
+    "In the garden of devotion, every leaf sings"
+  ], []);
 
-  // Check if mobile on mount and resize
+  const poets = useMemo(() => ["Rumi", "Kabir", "Mirabai", "Tulsidas", "Tagore"], []);
+  const symbols = useMemo(() => ["🕉️", "🔱", "🌙", "🌊", "💕", "🌆", "👑", "⛰️", "🌸", "⭐"], []);
+
+  // ✅ Mobile check with cleanup
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
     return () => window.removeEventListener('resize', checkMobile);
-  }, [isMobile]);
+  }, []);
 
-  // Helper function to get layout class for masonry grid - RESPONSIVE VERSION
-  const getLayoutClass = (index) => {
-    // Different patterns for different screen sizes
-    const mobilePatterns = [
-      { height: "h-56", colSpan: "col-span-1" },
-      { height: "h-64", colSpan: "col-span-1" },
-      { height: "h-48", colSpan: "col-span-1" },
-    ];
-    
-    const tabletPatterns = [
-      { height: "h-64", colSpan: "col-span-1" },
-      { height: "h-80", colSpan: "col-span-1" },
-      { height: "h-72", colSpan: "col-span-1" },
-      { height: "h-96", colSpan: "col-span-1" },
-      { height: "h-64 sm:col-span-2 sm:h-72", colSpan: "col-span-1 sm:col-span-2" },
-    ];
-    
-    const desktopPatterns = [
-      { height: "h-64", colSpan: "col-span-1" },
-      { height: "h-80", colSpan: "col-span-1" },
-      { height: "h-96", colSpan: "col-span-1" },
-      { height: "h-72", colSpan: "col-span-1" },
-      { height: "h-64 lg:col-span-2 lg:h-80", colSpan: "col-span-1 lg:col-span-2" },
-      { height: "h-80", colSpan: "col-span-1" },
-      { height: "h-96", colSpan: "col-span-1" },
-      { height: "h-72 xl:col-span-2 xl:h-64", colSpan: "col-span-1 xl:col-span-2" },
-    ];
-    
-    // Use different patterns based on screen size
-    if (isMobile) {
-      return mobilePatterns[index % mobilePatterns.length];
-    } else if (window.innerWidth < 1024) { // Tablet
-      return tabletPatterns[index % tabletPatterns.length];
-    } else {
-      return desktopPatterns[index % desktopPatterns.length];
-    }
-  };
-
-  // Fetch gallery data from backend
+  // ✅ Fetch gallery data with AbortController
   useEffect(() => {
     const fetchGalleryData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const API_BASE_URL = process.env.REACT_APP_API_URL;
-        console.log("API BASE URL:", API_BASE_URL);
+        const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        
+        const response = await fetch(`${API_BASE_URL}/api/gallery`, {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
 
-        const response = await fetch(`${API_BASE_URL}/api/gallery`);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
         const data = await response.json();
-        console.log("Backend response:", data);
-
         let imagesArray = [];
 
-        if (Array.isArray(data)) {
-          imagesArray = data;
-        } else if (Array.isArray(data.images)) {
-          imagesArray = data.images;
-        } else if (Array.isArray(data.data)) {
-          imagesArray = data.data;
-        } else {
-          throw new Error("No valid image array in response");
-        }
+        if (Array.isArray(data)) imagesArray = data;
+        else if (Array.isArray(data.images)) imagesArray = data.images;
+        else if (Array.isArray(data.data)) imagesArray = data.data;
+        else throw new Error("No valid image array in response");
 
-        if (imagesArray.length === 0) {
-          throw new Error("Gallery images array is empty");
-        }
+        if (imagesArray.length === 0) throw new Error("Gallery images array is empty");
 
         const formattedImages = imagesArray.map((img, index) => {
-          const layout = getLayoutClass(index);
-
-          const rawUrl =
-            img.image ||
-            img.imageUrl ||
-            img.url ||
-            img.src ||
-            img.photo ||
-            `https://via.placeholder.com/600x800?text=Image+${index + 1}`;
-
-          const imageUrl = optimizeCloudinary(rawUrl, isMobile);
-
-          const location =
-            img.location ||
-            img.place ||
-            img.city ||
-            img.state ||
-            img.country ||
-            `Location ${index + 1}`;
+          const rawUrl = img.image || img.imageUrl || img.url || img.src || img.photo;
+          const location = img.location || img.place || img.city || img.state || img.country || `Coordinate ${index + 1}`;
+          const poeticIndex = index % poeticLines.length;
 
           return {
             id: img._id || index + 1,
-            url: imageUrl,
-            title: `${location} की यात्रा`,
-            english: location,
-            description:
-              img.description ||
-              img.caption ||
-              `Sacred moments from ${location}`,
-            location,
-            date:
-              img.date ||
-              new Date().toLocaleDateString("en-IN", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              }),
-            views: img.views || Math.floor(Math.random() * 8000),
-            tags: img.tags || [location.split(",")[0], "spiritual", "journey"],
-            heightClass: layout.height,
-            colSpan: layout.colSpan,
+            rawUrl: rawUrl,
+            title: img.title || `${location} Archive`,
+            description: img.description || img.caption || poeticLines[poeticIndex],
+            location: location,
+            date: img.date || "Timeless",
+            tags: img.tags || ["Archive", "Visual"],
+            poet: poets[index % poets.length],
+            symbol: symbols[index % symbols.length]
           };
         });
 
-        setGalleryImages(formattedImages);
-
-        const stats = {};
-        formattedImages.forEach((img) => {
-          stats[img.id] = { views: img.views, viewed: false };
-        });
-        setImageStats(stats);
-
+        setGalleryImages(shuffleArray(formattedImages));
       } catch (err) {
         console.error("Gallery fetch failed:", err.message);
         setError(err.message);
@@ -194,721 +120,367 @@ function GallerySection() {
     };
 
     fetchGalleryData();
+  }, [poeticLines, poets, symbols]);
+
+  // ✅ Memoized callbacks with correct dependencies
+  const openLightbox = useCallback((image) => {
+    setSelectedImage(image);
+    document.body.style.overflow = 'hidden';
   }, []);
 
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      cursorX.set(e.clientX);
-      cursorY.set(e.clientY);
-    };
-
-    // Only add cursor effect on desktop
-    if (!isMobile) {
-      window.addEventListener('mousemove', handleMouseMove);
-    }
-    
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [isMobile]);
-
-  // Helper function to get current stats for an image
-  const getImageStats = (imageId) => {
-    const stats = imageStats[imageId] || { views: 0, viewed: false };
-    return {
-      views: stats.views + (stats.viewed ? 1 : 0),
-      viewed: stats.viewed
-    };
-  };
-
-  const displayedImages = galleryImages.slice(0, visibleCount);
-
-  const openLightbox = (image) => {
-    setSelectedImage(image);
-    const index = galleryImages.findIndex(img => img.id === image.id);
-    setCurrentSlide(index);
-    document.body.style.overflow = 'hidden';
-    
-    // Mark as viewed
-    if (!imageStats[image.id]?.viewed) {
-      setImageStats(prev => ({
-        ...prev,
-        [image.id]: {
-          ...prev[image.id],
-          viewed: true
-        }
-      }));
-    }
-  };
-
-  const closeLightbox = () => {
+  const closeLightbox = useCallback(() => {
     setSelectedImage(null);
     document.body.style.overflow = 'auto';
-  };
+  }, []);
 
-  const navigateSlide = (direction) => {
-    const newIndex = direction === 'next' 
-      ? (currentSlide + 1) % galleryImages.length 
-      : (currentSlide - 1 + galleryImages.length) % galleryImages.length;
-    
-    const newImage = galleryImages[newIndex];
-    setCurrentSlide(newIndex);
-    setSelectedImage(newImage);
-    
-    // Mark as viewed
-    if (!imageStats[newImage.id]?.viewed) {
-      setImageStats(prev => ({
-        ...prev,
-        [newImage.id]: {
-          ...prev[newImage.id],
-          viewed: true
-        }
-      }));
-    }
-  };
+  const navigateSlide = useCallback((direction) => {
+    setSelectedImage((prev) => {
+      if (!prev) return galleryImages[0];
+      const displayedImages = galleryImages.slice(0, visibleCount);
+      const currentIndex = displayedImages.findIndex(img => img.id === prev.id);
+      
+      let nextIndex = direction === 'next' 
+        ? (currentIndex + 1) % displayedImages.length 
+        : (currentIndex - 1 + displayedImages.length) % displayedImages.length;
+        
+      return displayedImages[nextIndex];
+    });
+  }, [galleryImages, visibleCount]);
 
-  const loadMore = () => {
-    const increment = isMobile ? 4 : 8;
-    setVisibleCount(prev => prev + increment);
-  };
+  // ✅ Keyboard navigation with correct dependencies
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!selectedImage) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') navigateSlide('next');
+      if (e.key === 'ArrowLeft') navigateSlide('prev');
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedImage, closeLightbox, navigateSlide]);
 
-  const resetView = () => {
-    setVisibleCount(isMobile ? 6 : 12);
-  };
+  // ✅ Memoized handlers
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount(prev => Math.min(prev + 7, galleryImages.length));
+  }, [galleryImages.length]);
 
-  const retryFetch = () => {
-    window.location.reload();
-  };
+  const handleShowLess = useCallback(() => {
+    setVisibleCount(7);
+    document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" });
+  }, []);
 
-  // Calculate total stats for display
-  const totalViews = galleryImages.reduce((sum, img) => {
-    const stats = getImageStats(img.id);
-    return sum + stats.views;
-  }, 0);
+  const getGridItemStyles = useCallback((index) => {
+    const patterns = [
+      "md:col-span-8 aspect-[16/10] sm:aspect-[21/9] md:aspect-[16/10]",
+      "md:col-span-4 aspect-[4/5] md:aspect-[3/4]",
+      "md:col-span-4 aspect-square md:aspect-[4/5]",
+      "md:col-span-4 aspect-square md:aspect-[4/5]",
+      "md:col-span-4 aspect-[16/9] md:aspect-[4/5]",
+      "md:col-span-6 aspect-[16/9] md:aspect-[16/10]",
+      "md:col-span-6 aspect-[16/9] md:aspect-[16/10]",
+    ];
+    return patterns[index % patterns.length];
+  }, []);
 
-  // Loading state
+  // ✅ Memoized displayed images
+  const displayedImages = useMemo(() => {
+    return galleryImages.slice(0, visibleCount);
+  }, [galleryImages, visibleCount]);
+
+  // ✅ Loading state
   if (loading) {
     return (
-      <section className="min-h-screen py-12 md:py-24 bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center px-4"
-        >
+      <section className="min-h-screen bg-black flex items-center justify-center py-20">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-transparent border-t-rose-400 border-r-purple-400 mx-auto mb-4 md:mb-6"
-          />
-          <h3 className="text-xl md:text-2xl text-white mb-2 md:mb-3">Loading Divine Moments...</h3>
-          <p className="text-gray-400 text-sm md:text-base">Connecting to spiritual database</p>
-          <div className="mt-4 md:mt-6 flex items-center justify-center gap-2">
-            <div className="w-2 h-2 bg-rose-400 rounded-full animate-pulse"></div>
-            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-100"></div>
-            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse delay-200"></div>
-          </div>
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          >
+            <BookOpen className="w-8 h-8 text-white/20 mx-auto mb-4" />
+          </motion.div>
+          <p className="text-white/30 text-[10px] tracking-[0.3em] uppercase font-mono">
+            Opening Sacred Archive
+          </p>
         </motion.div>
       </section>
     );
   }
 
-  // Empty state
-  if (!loading && galleryImages.length === 0) {
+  // ✅ Error state
+  if (!loading && (galleryImages.length === 0 || error)) {
     return (
-      <section className="min-h-screen py-12 md:py-24 bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
-        <div className="text-center max-w-md px-4">
-          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
-            <Camera className="w-6 h-6 md:w-8 md:h-8 text-rose-400" />
-          </div>
-          <h3 className="text-lg md:text-xl text-white mb-2">No Images Found</h3>
-          <p className="text-gray-400 text-sm md:text-base mb-4">Unable to load gallery images. Please check:</p>
-          <ul className="text-gray-500 text-xs md:text-sm text-left mb-6">
-            <li className="mb-1">• Backend server is running at {API_BASE_URL}</li>
-            <li className="mb-1">• CORS is properly configured</li>
-            <li>• API endpoint returns valid image data</li>
-          </ul>
+      <section className="min-h-screen bg-black flex items-center justify-center py-20">
+        <div className="text-center">
+          <Camera className="w-8 h-8 text-white/10 mx-auto mb-4" />
+          <p className="text-white/30 font-mono text-xs uppercase tracking-widest mb-6">
+            Archive Unreachable
+          </p>
           <button 
-            onClick={retryFetch}
-            className="px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:opacity-90 transition-opacity text-sm md:text-base"
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 border border-white/10 bg-white/5 text-white/50 hover:text-white rounded-md text-[10px] tracking-widest font-mono transition-all"
           >
-            Try Again
+            Re-initialize
           </button>
         </div>
       </section>
     );
   }
 
-  // Main render
   return (
-    <>
-      <section id="gallery" className="min-h-screen py-12 md:py-24 bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-4 md:left-10 w-48 md:w-96 h-48 md:h-96 bg-purple-500/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-4 md:right-10 w-48 md:w-96 h-48 md:h-96 bg-rose-500/5 rounded-full blur-3xl" />
-        </div>
+    <section id="gallery" className="min-h-screen bg-black text-white py-24 select-none border-t border-white/5 relative overflow-hidden">
+      
+      {/* ✅ Reduced ambient glow for performance */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl" />
+      </div>
 
-        {!isMobile && (
-          <motion.div
-            className="fixed w-8 h-8 rounded-full border border-rose-400/30 pointer-events-none z-50 mix-blend-difference"
-            style={{
-              x: springX,
-              y: springY,
-            }}
-          />
-        )}
+      {/* HEADER */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 w-full mb-16 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, ease }}
+          className="space-y-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-amber-400/50 to-amber-400/0" />
+            <span className="font-mono text-[10px] text-white/20 tracking-[0.3em] uppercase">
+              03 // Sacred Archive
+            </span>
+            <div className="w-12 h-[1px] bg-white/10" />
+            <span className="text-white/30 font-mono text-[10px] tracking-widest uppercase hidden md:block">
+              Visual Memory
+            </span>
+          </div>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-tight leading-none">
+            <span className="block">Fragments of</span>
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-purple-400 to-amber-400 bg-[length:200%] animate-gradient mt-1">
+              Sacred India
+            </span>
+          </h2>
+          <p className="text-white/20 text-sm max-w-md font-light mt-2">
+            Each image is a verse in the eternal poem of India's spiritual landscape
+          </p>
+        </motion.div>
+      </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-8 md:mb-16">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 md:gap-3 mb-4 md:mb-8 px-4 md:px-6 py-2 md:py-3 rounded-full bg-gray-900/50 backdrop-blur-sm border border-gray-800"
-            >
-              <div className="w-4 md:w-8 h-px bg-gradient-to-r from-transparent to-gray-700" />
-              <Camera className="w-4 h-4 md:w-5 md:h-5 text-rose-400" />
-              <span className="text-xs md:text-sm text-gray-400 tracking-wider md:tracking-widest">VISUAL NARRATIVES</span>
-              <div className="w-4 md:w-8 h-px bg-gradient-to-l from-transparent to-gray-700" />
-            </motion.div>
-            
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light tracking-tight mb-4 md:mb-8"
-            >
-              <span className="text-white">Visual</span>
-              <span className="block mt-2 md:mt-4">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-pink-400 to-purple-400">
-                  Chronicles
-                </span>
-              </span>
-            </motion.h1>
-            
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-6 md:mb-12 leading-relaxed px-4"
-            >
-              A collection of moments from spiritual journeys, where every photograph tells a story of 
-              <span className="text-rose-300"> faith</span>, 
-              <span className="text-purple-300"> culture</span>, and 
-              <span className="text-amber-300"> timeless beauty</span>.
-            </motion.p>
+      {/* ARCHIVE GRID - ✅ Added lazy loading for images */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 w-full relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 auto-rows-auto">
+          <AnimatePresence mode="popLayout">
+            {displayedImages.map((image, index) => {
+              const isLead = index % 7 === 0;
+              const optimizedUrl = optimizeCloudinary(image.rawUrl, isMobile);
 
-            {/* Mobile View Toggle */}
-            {isMobile && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-center mb-6"
-              >
-                <div className="inline-flex rounded-xl bg-gray-900/50 border border-gray-800 p-1">
-                  <button
-                    onClick={() => setGridView(true)}
-                    className={`px-4 py-2 rounded-lg transition-all ${gridView ? 'bg-gray-800 text-white' : 'text-gray-400'}`}
-                  >
-                    <Grid className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setGridView(false)}
-                    className={`px-4 py-2 rounded-lg transition-all ${!gridView ? 'bg-gray-800 text-white' : 'text-gray-400'}`}
-                  >
-                    <List className="w-4 h-4" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-16 max-w-3xl mx-auto"
-            >
-              {[
-                { 
-                  value: galleryImages.length, 
-                  label: "Photographs", 
-                  sub: "Moments captured",
-                  icon: <Camera className="w-4 h-4 md:w-5 md:h-5" />,
-                  color: "from-amber-500 to-orange-500"
-                },
-                { 
-                  value: totalViews.toLocaleString(), 
-                  label: "Total Views", 
-                  sub: "Memories shared",
-                  icon: <Eye className="w-4 h-4 md:w-5 md:h-5" />,
-                  color: "from-sky-500 to-cyan-500"
-                },
-                { 
-                  value: [...new Set(galleryImages.map(img => img.location.split(',')[0]))].length, 
-                  label: "Locations", 
-                  sub: "Across India",
-                  icon: <MapPin className="w-4 h-4 md:w-5 md:h-5" />,
-                  color: "from-emerald-500 to-teal-500"
-                },
-                { 
-                  value: "Spiritual", 
-                  label: "Theme", 
-                  sub: "Divine journeys",
-                  icon: "🕉️",
-                  color: "from-rose-500 to-pink-500"
-                },
-              ].map((stat, index) => (
+              return (
                 <motion.div
-                  key={index}
-                  whileHover={{ y: -4 }}
-                  className="group p-3 md:p-6 rounded-xl md:rounded-2xl bg-gray-900/30 backdrop-blur-sm border border-gray-800 hover:border-gray-700 transition-all duration-300"
+                  key={image.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.6, ease, delay: (index % 4) * 0.05 }}
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                  onClick={() => openLightbox(image)}
+                  className={`relative group rounded-2xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/5 hover:border-white/15 transition-all duration-500 ${getGridItemStyles(index)}`}
                 >
-                  <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-r ${stat.color} flex items-center justify-center mb-2 md:mb-4`}>
-                    <div className="text-white text-sm md:text-lg">{typeof stat.icon === 'string' ? stat.icon : stat.icon}</div>
+                  {/* ✅ Image with loading="lazy" and decoding="async" */}
+                  <div 
+                    className={`absolute inset-0 bg-cover bg-center transition-all duration-1000 ${
+                      hoveredIndex === index ? "scale-105" : "scale-100"
+                    }`}
+                    style={{ backgroundImage: `url(${optimizedUrl})` }}
+                  />
+
+                  {/* Overlay Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-500" />
+                  
+                  {/* Poetic Symbol */}
+                  <div className="absolute top-4 left-4 text-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500">
+                    {image.symbol}
                   </div>
-                  <div className="text-lg md:text-3xl font-bold text-white mb-1">{stat.value}</div>
-                  <div className="text-xs md:text-sm font-medium text-gray-300 mb-1">{stat.label}</div>
-                  <div className="text-xs md:text-xs text-gray-500">{stat.sub}</div>
-                </motion.div>
-              ))}
-            </motion.div>
 
-            {/* Featured Image Section */}
-            {galleryImages.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="relative h-[300px] sm:h-[400px] md:h-[500px] rounded-xl md:rounded-3xl overflow-hidden mb-8 md:mb-16 group cursor-pointer"
-                onClick={() => openLightbox(galleryImages[0])}
-              >
-                <div 
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                  style={{ 
-                    backgroundImage: `url(${galleryImages[0].url})`,
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                
-                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-8">
-                  <div className="max-w-4xl">
-                    <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
-                      <div className="px-3 py-1 md:px-4 md:py-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs md:text-sm font-medium">
-                        Featured
-                      </div>
-                    </div>
-                    
-                    <h3 className="text-lg sm:text-xl md:text-3xl font-bold text-white mb-1 md:mb-2">{galleryImages[0].english}</h3>
-                    <div className="font-devanagari text-sm sm:text-base md:text-xl text-gray-300 mb-2 md:mb-4">{galleryImages[0].title}</div>
-                    
-                    <div className="flex flex-wrap items-center gap-2 md:gap-6 text-gray-300 text-xs md:text-base">
-                      <span className="flex items-center gap-1 md:gap-2">
-                        <MapPin className="w-3 h-3 md:w-4 md:h-4" /> 
-                        <span className="truncate max-w-[100px] md:max-w-none">{galleryImages[0].location}</span>
-                      </span>
-                      <span className="hidden sm:flex items-center gap-1 md:gap-2">
-                        <Calendar className="w-3 h-3 md:w-4 md:h-4" /> {galleryImages[0].date}
-                      </span>
-                      <span className="flex items-center gap-1 md:gap-2">
-                        <Eye className="w-3 h-3 md:w-4 md:h-4 text-gray-400" /> 
-                        {getImageStats(galleryImages[0].id).views.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="absolute top-4 left-4 md:top-6 md:left-6">
-                  <div className="flex gap-1 md:gap-2">
-                    {galleryImages[0].tags.slice(0, isMobile ? 2 : 3).map((tag, index) => (
-                      <span key={index} className="px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white text-xs font-devanagari">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 p-2 md:p-3 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
-                  <Eye className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                </div>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Masonry Grid */}
-          <div className={`mb-8 md:mb-12 ${
-            isMobile && !gridView 
-              ? "flex flex-col gap-4" 
-              : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
-          }`}>
-            <AnimatePresence>
-              {displayedImages.slice(1).map((image, index) => {
-                const stats = getImageStats(image.id);
-                const heightClass = image.heightClass || "h-56 md:h-80";
-                const colSpan = image.colSpan || "col-span-1";
-                
-                // Mobile list view
-                if (isMobile && !gridView) {
-                  return (
-                    <motion.div
-                      key={image.id}
-                      layout
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="group relative rounded-xl overflow-hidden cursor-pointer bg-gray-900/30 border border-gray-800"
-                      onClick={() => openLightbox(image)}
-                    >
-                      <div className="flex items-center p-4">
-                        <div className="w-20 h-20 rounded-lg overflow-hidden mr-4 flex-shrink-0">
-                          <img 
-                            src={image.url} 
-                            alt={image.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-semibold text-sm mb-1 font-devanagari line-clamp-1">
-                            {image.title}
-                          </h3>
-                          <p className="text-gray-400 text-xs mb-2 line-clamp-2">
-                            {image.description}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-gray-400" />
-                              <span className="text-gray-400 text-xs">
-                                {image.location.split(',')[0]}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Eye className="w-3 h-3 text-gray-400" />
-                              <span className="text-gray-400 text-xs">
-                                {stats.views > 999 ? `${(stats.views / 1000).toFixed(1)}k` : stats.views}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                }
-                
-                // Grid view
-                return (
-                  <motion.div
-                    key={image.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={`group relative rounded-xl md:rounded-2xl overflow-hidden cursor-pointer ${colSpan}`}
-                    onClick={() => openLightbox(image)}
-                  >
-                    <div className={`relative w-full ${heightClass} overflow-hidden`}>
-                      {/* Image */}
-                      <img 
-                        src={image.url}
-                        alt={image.title}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      
-                      {/* Gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      
-                      {/* Info overlay */}
-                      <div className="absolute inset-0 p-4 md:p-6 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-all duration-300">
-                        <div className="backdrop-blur-sm bg-black/30 p-3 md:p-4 rounded-lg md:rounded-xl">
-                          <h3 className="text-white font-semibold text-sm md:text-lg mb-1 md:mb-2 font-devanagari line-clamp-2">
-                            {image.title}
-                          </h3>
-                          <p className="text-gray-300 text-xs md:text-sm mb-2 md:mb-4 line-clamp-2">
-                            {image.description}
-                          </p>
-                          
-                          <div className="flex items-center justify-between mb-2 md:mb-4">
-                            <div className="flex items-center gap-1 md:gap-2">
-                              <MapPin className="w-3 h-3 text-gray-400" />
-                              <span className="text-gray-400 text-xs truncate max-w-[80px] md:max-w-[100px]">
-                                {image.location.split(',')[0]}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Eye className="w-3 h-3 text-gray-400" />
-                              <span className="text-gray-400 text-xs">
-                                {stats.views > 999 ? `${(stats.views / 1000).toFixed(1)}k` : stats.views}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-1">
-                            {image.tags.slice(0, 2).map((tag, idx) => (
-                              <span key={idx} className="px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white text-xs font-devanagari truncate">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Viewed indicator */}
-                      {stats.viewed && (
-                        <div className="absolute top-2 right-2 md:top-4 md:right-4">
-                          <div className="px-2 py-1 rounded-full text-xs bg-emerald-500/20 backdrop-blur-sm text-emerald-300 border border-emerald-500/30">
-                            <Eye className="w-2 h-2 inline mr-1" />
-                            Viewed
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-
-          {/* START OF UPDATED SECTION: Dual Button Controls */}
-          {galleryImages.length > (isMobile ? 6 : 12) && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center gap-4 mt-8 md:mt-12"
-            >
-              {/* Button Controls */}
-              <div className="flex flex-wrap justify-center gap-3">
-                
-                {/* Show Less Button: Only visible when more than initial images are shown */}
-                {visibleCount > (isMobile ? 6 : 12) && (
-                  <button
-                    onClick={resetView}
-                    className="group px-5 py-2.5 md:px-6 md:py-3 rounded-lg md:rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 border border-gray-700 hover:border-gray-600 text-white font-medium transition-all duration-300 flex items-center gap-2 text-sm md:text-base"
-                  >
-                    <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    <span>Show Less</span>
-                  </button>
-                )}
-                
-                {/* Show More Button: Only visible when there are still images to load */}
-                {visibleCount < galleryImages.length && (
-                  <button
-                    onClick={loadMore}
-                    className="group px-5 py-2.5 md:px-6 md:py-3 rounded-lg md:rounded-xl bg-gradient-to-r from-rose-800/30 to-pink-800/30 hover:from-rose-700/40 hover:to-pink-700/40 border border-rose-700/30 hover:border-rose-600/40 text-white font-medium transition-all duration-300 flex items-center gap-2 text-sm md:text-base"
-                  >
-                    <span>Show More</span>
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                )}
-                
-              </div>
-              
-              {/* Image Counter Display */}
-              <div className="text-gray-500 text-xs md:text-sm text-center">
-                Showing {Math.min(visibleCount, galleryImages.length)} of {galleryImages.length} images
-                {visibleCount < galleryImages.length && (
-                  <span className="text-rose-400 ml-2">
-                    • {galleryImages.length - visibleCount} more available
-                  </span>
-                )}
-              </div>
-              
-            </motion.div>
-          )}
-          {/* END OF UPDATED SECTION */}
-
-          {/* Error State Display */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center mt-8 md:mt-12"
-            >
-              <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 px-4 py-3 md:px-6 md:py-4 rounded-lg md:rounded-2xl bg-gray-900/50 border border-gray-800 backdrop-blur-sm">
-                <WifiOff className="w-5 h-5 text-amber-400 flex-shrink-0" />
-                <div className="text-center sm:text-left">
-                  <p className="text-amber-300 text-sm font-medium">Note</p>
-                  <p className="text-gray-400 text-xs">
-                    Showing sample images. {error}
-                  </p>
-                </div>
-                <button
-                  onClick={retryFetch}
-                  className="mt-2 sm:mt-0 sm:ml-4 px-3 py-1.5 md:px-4 md:py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs md:text-sm transition-colors"
-                >
-                  Retry Connection
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </div>
-      </section>
-
-      {/* Lightbox Modal */}
-      <AnimatePresence>
-        {selectedImage && (() => {
-          const stats = getImageStats(selectedImage.id);
-          return (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-lg"
-              onClick={closeLightbox}
-            >
-              <div className="relative w-full h-full flex items-center justify-center p-4 md:p-8">
-                <motion.img
-                  key={selectedImage.id}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
-                  src={selectedImage.url}
-                  alt={selectedImage.title}
-                  className="max-w-full max-h-[50vh] md:max-h-[60vh] lg:max-h-[70vh] xl:max-h-[80vh] object-contain rounded-lg shadow-2xl"
-                />
-                
-                <motion.div 
-                  initial={{ y: 100, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="absolute bottom-0 left-0 right-0 p-4 md:p-8 bg-gradient-to-t from-black via-black/95 to-transparent"
-                >
-                  <div className="max-w-6xl mx-auto">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
-                      <div className="lg:col-span-2">
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">{selectedImage.english}</h2>
-                        <div className="font-devanagari text-base sm:text-lg md:text-xl text-gray-300 mb-2 md:mb-4">{selectedImage.title}</div>
-                        <p className="text-gray-400 text-sm md:text-lg mb-3 md:mb-6 line-clamp-2 md:line-clamp-3">{selectedImage.description}</p>
-                        
-                        <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-4 md:mb-6">
-                          <div className="flex items-center gap-1 md:gap-2">
-                            <MapPin className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
-                            <span className="text-gray-300 text-sm md:text-base truncate max-w-[100px] md:max-w-none">
-                              {selectedImage.location}
-                            </span>
-                          </div>
-                          <div className="hidden sm:block w-1 h-1 bg-gray-600 rounded-full"></div>
-                          <div className="flex items-center gap-1 md:gap-2">
-                            <Calendar className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
-                            <span className="text-gray-300 text-sm md:text-base">{selectedImage.date}</span>
-                          </div>
-                          <div className="hidden sm:block w-1 h-1 bg-gray-600 rounded-full"></div>
-                          <div className="flex items-center gap-1 md:gap-2">
-                            <Eye className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
-                            <span className="text-gray-300 text-sm md:text-base">{stats.views.toLocaleString()} views</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-1 md:gap-2">
-                          {selectedImage.tags.slice(0, isMobile ? 3 : selectedImage.tags.length).map((tag, idx) => (
-                            <span key={idx} className="px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-gray-800 text-gray-300 text-xs md:text-sm border border-gray-700 truncate">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div className="hidden lg:block space-y-6">
-                        <div className="p-4 md:p-6 rounded-xl bg-gray-900/50 border border-gray-800">
-                          <h4 className="text-sm font-medium text-gray-400 mb-4">PHOTO DETAILS</h4>
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-400">Views</span>
-                              <div className="flex items-center gap-2">
-                                <Eye className="w-5 h-5 text-gray-400" />
-                                <span className="text-white">
-                                  {stats.views.toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-400">Location</span>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="w-5 h-5 text-gray-400" />
-                                <span className="text-white">
-                                  {selectedImage.location}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-400">Date</span>
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-gray-400" />
-                                <span className="text-white">
-                                  {selectedImage.date}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigateSlide('prev');
-                  }}
-                  className="absolute left-2 md:left-6 top-1/2 transform -translate-y-1/2 p-2 md:p-4 rounded-lg md:rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-300 group"
-                >
-                  <ChevronLeft className="w-4 h-4 md:w-6 md:h-6 text-white group-hover:scale-110 transition-transform" />
-                </button>
-                
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigateSlide('next');
-                  }}
-                  className="absolute right-2 md:right-6 top-1/2 transform -translate-y-1/2 p-2 md:p-4 rounded-lg md:rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-300 group"
-                >
-                  <ChevronRight className="w-4 h-4 md:w-6 md:h-6 text-white group-hover:scale-110 transition-transform" />
-                </button>
-
-                <button
-                  onClick={closeLightbox}
-                  className="absolute top-2 right-2 md:top-6 md:right-6 p-2 md:p-3 rounded-lg md:rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-300"
-                >
-                  <X className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                </button>
-
-                <div className="absolute top-2 md:top-6 left-1/2 transform -translate-x-1/2">
-                  <div className="px-3 py-1 md:px-4 md:py-2 rounded-lg md:rounded-xl bg-black/50 backdrop-blur-sm border border-white/10">
-                    <span className="text-white text-xs md:text-sm">
-                      {currentSlide + 1} / {galleryImages.length}
+                  {/* Badge */}
+                  <div className="absolute top-4 right-4 flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded bg-black/40 backdrop-blur-md border border-white/10 text-white/50 font-mono text-[9px] tracking-widest uppercase">
+                      {isLead ? "Featured" : `#${String(index + 1).padStart(2, '0')}`}
                     </span>
                   </div>
-                </div>
 
-                {!isMobile && (
-                  <div className="absolute top-6 right-24 flex gap-2">
-                    <button className="p-3 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors">
-                      <Download className="w-5 h-5 text-white" />
-                    </button>
-                    <button className="p-3 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors">
-                      <Share2 className="w-5 h-5 text-white" />
-                    </button>
+                  {/* Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500 ease-out">
+                    <div className="space-y-1">
+                      <h3 className={`font-light text-white tracking-tight ${isLead ? 'text-2xl md:text-3xl' : 'text-lg md:text-xl'}`}>
+                        {image.title}
+                      </h3>
+                      {isLead && (
+                        <p className="text-white/40 text-xs md:text-sm font-light line-clamp-2 max-w-md hidden sm:block">
+                          {image.description}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/10 text-white/30 font-mono text-[9px] uppercase tracking-wider">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <MapPin className="w-3 h-3 text-white/20 flex-shrink-0" />
+                        <span className="truncate">{image.location.split(',')[0]}</span>
+                      </div>
+                      <div className="w-px h-3 bg-white/10" />
+                      <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <Feather className="w-3 h-3 text-white/20" />
+                        <span>{image.poet}</span>
+                      </div>
+                    </div>
                   </div>
-                )}
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
 
-                {/* Mobile bottom actions */}
-                {isMobile && (
-                  <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex gap-4">
-                    <button className="p-3 rounded-xl bg-white/10 backdrop-blur-sm transition-colors">
-                      <Download className="w-5 h-5 text-white" />
-                    </button>
-                    <button className="p-3 rounded-xl bg-white/10 backdrop-blur-sm transition-colors">
-                      <Share2 className="w-5 h-5 text-white" />
-                    </button>
-                  </div>
-                )}
+        {/* Controls */}
+        {galleryImages.length > 7 && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            className="flex items-center justify-center gap-4 mt-12 md:mt-16"
+          >
+            {visibleCount < galleryImages.length && (
+              <button
+                onClick={handleLoadMore}
+                className="group flex items-center gap-2 px-6 py-3 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-white/30 text-white/60 hover:text-white transition-all duration-300 text-[11px] font-mono tracking-widest uppercase"
+              >
+                <span>Reveal More</span>
+                <ChevronDown className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
+              </button>
+            )}
+
+            {visibleCount > 7 && (
+              <button
+                onClick={handleShowLess}
+                className="group flex items-center gap-2 px-6 py-3 rounded-full bg-transparent hover:bg-white/[0.02] border border-transparent hover:border-white/10 text-white/40 hover:text-white/80 transition-all duration-300 text-[11px] font-mono tracking-widest uppercase"
+              >
+                <span>Show Less</span>
+                <ChevronUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
+              </button>
+            )}
+          </motion.div>
+        )}
+
+        {/* Footer */}
+        <div className="mt-20 pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 font-mono text-[10px] text-white/20 tracking-widest uppercase">
+            <Globe className="w-3 h-3" />
+            <span>{galleryImages.length} Sacred Fragments</span>
+          </div>
+          
+          <div className="flex items-center gap-4 text-white/10 text-[10px]">
+            <span className="flex items-center gap-1">
+              <Compass className="w-3 h-3" />
+              Discover
+            </span>
+            <span className="w-px h-3 bg-white/10" />
+            <span className="flex items-center gap-1">
+              <Heart className="w-3 h-3" />
+              Preserve
+            </span>
+          </div>
+
+          <div className="font-devanagari text-white/10 text-xs tracking-wider">
+            यात्रा एक प्रार्थना है
+          </div>
+        </div>
+      </div>
+
+      {/* Lightbox - ✅ Added loading="lazy" */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex items-center justify-center cursor-zoom-out"
+            onClick={closeLightbox}
+          >
+            <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-20 pointer-events-none">
+              <div className="font-mono text-[10px] text-white/40 tracking-widest uppercase px-3 py-1.5 rounded-md bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-3">
+                <span>{selectedImage.symbol}</span>
+                <span># {displayedImages.findIndex(img => img.id === selectedImage.id) + 1} / {displayedImages.length}</span>
               </div>
+              <button
+                onClick={closeLightbox}
+                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all pointer-events-auto hover:rotate-90"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              <div className="absolute bottom-2 md:bottom-6 left-1/2 transform -translate-x-1/2 text-gray-500 text-xs md:text-sm text-center px-4">
-                Click anywhere to close • {!isMobile && "Use arrow keys to navigate"}
+            <button
+              onClick={(e) => { e.stopPropagation(); navigateSlide('prev'); }}
+              className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all z-20"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            
+            <button
+              onClick={(e) => { e.stopPropagation(); navigateSlide('next'); }}
+              className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all z-20"
+            >
+              <ArrowRight className="w-5 h-5" />
+            </button>
+
+            <motion.div
+              key={selectedImage.id}
+              initial={{ scale: 0.98, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.98, opacity: 0 }}
+              className="relative w-full max-w-[85vw] md:max-w-[75vw] h-[85vh] flex flex-col items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* ✅ Image with loading="lazy" and decoding="async" */}
+              <img
+                src={optimizeCloudinary(selectedImage.rawUrl, false)}
+                alt={selectedImage.title}
+                className="max-w-full max-h-[65vh] object-contain shadow-2xl"
+                loading="lazy"
+                decoding="async"
+              />
+
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-8 w-full max-w-2xl text-center space-y-3">
+                <div className="flex items-center justify-center gap-2 text-white/20 text-sm">
+                  <span>{selectedImage.symbol}</span>
+                  <span className="text-white/20 text-[8px] tracking-widest">—</span>
+                  <span className="text-white/30 text-[10px] font-devanagari">{selectedImage.poet}</span>
+                </div>
+                
+                <h3 className="text-xl md:text-2xl font-light text-white tracking-tight">
+                  {selectedImage.title}
+                </h3>
+                
+                <p className="text-white/40 text-sm md:text-base font-light italic max-w-lg mx-auto">
+                  "{selectedImage.description}"
+                </p>
+                
+                <div className="flex items-center justify-center gap-4 text-white/20 font-mono text-[9px] uppercase tracking-widest pt-2">
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-3 h-3" />
+                    {selectedImage.location.split(',')[0]}
+                  </span>
+                  <span className="w-px h-3 bg-white/10" />
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-3 h-3" />
+                    {selectedImage.date}
+                  </span>
+                </div>
               </div>
             </motion.div>
-          );
-        })()}
+          </motion.div>
+        )}
       </AnimatePresence>
-    </>
+    </section>
   );
 }
 

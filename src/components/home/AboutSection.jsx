@@ -1,602 +1,396 @@
-import React, { useState, useEffect } from "react"; // Added React import
-import Container from "../layout/Container";
+import React, { useState, useMemo, useCallback } from "react";
 import { 
-  MapPin, Heart, Globe, Camera, Sparkles, 
-  Compass, BookOpen, Star, Users,
-  Mountain, Waves, Sunrise, Award,
-  Mail, Instagram, Twitter, Linkedin, Github, Youtube,
-  ArrowRight, ChevronRight, ExternalLink
+  MapPin, Camera, BookOpen, 
+  Sunrise, Youtube, Instagram, 
+  ArrowUpRight, Compass
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 function AboutSection() {
   const [activeTab, setActiveTab] = useState("story");
-  const [isMobile, setIsMobile] = useState(false);
 
-  // Check if mobile on mount and resize
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  // Motion Easing
+  const ease = [0.16, 1, 0.3, 1];
 
-  const tabs = [
-    { id: "story", label: "My Story", icon: <BookOpen className="w-4 h-4" /> },
-    { id: "philosophy", label: "Philosophy", icon: <Sparkles className="w-4 h-4" /> },
-    { id: "gear", label: "Travel Gear", icon: <Compass className="w-4 h-4" /> },
-    { id: "stats", label: "Stats", icon: <Award className="w-4 h-4" /> }
-  ];
+  // ✅ Memoized static data
+  const tabs = useMemo(() => [
+    { id: "story", label: "The Narrative", hindi: "वृत्तांत" },
+    { id: "philosophy", label: "Philosophy", hindi: "दर्शन" },
+    { id: "gear", label: "Equipment", hindi: "उपकरण" },
+    { id: "metrics", label: "Metrics", hindi: "आँकड़े" }
+  ], []);
 
-  // Updated social links - only YouTube and Instagram WITH LINKS
-  const socialLinks = [
+  const socialLinks = useMemo(() => [
     { 
       platform: "YouTube", 
-      icon: <Youtube className="w-5 h-5" />, 
+      id: "Video Archive",
       handle: "@spiritualodyssey", 
-      url: "https://www.youtube.com/@yourchannel", // Replace with your actual YouTube URL
-      color: "from-red-500 to-rose-500" 
+      url: "https://www.youtube.com/@yourchannel",
+      icon: <Youtube className="w-5 h-5" />
     },
     { 
       platform: "Instagram", 
-      icon: <Instagram className="w-5 h-5" />, 
+      id: "Visual Feed",
       handle: "@spiritualtravels", 
-      url: "https://www.instagram.com/travelwithanoj?igsh=ajR3cWVnN3gwMm5q", // Replace with your actual Instagram URL
-      color: "from-purple-500 to-pink-500" 
+      url: "https://www.instagram.com/travelwithanoj?igsh=ajR3cWVnN3gwMm5q",
+      icon: <Instagram className="w-5 h-5" />
     }
-  ];
+  ], []);
 
-  const travelStats = [
-    { label: "Countries", value: "1", icon: <Globe className="w-6 h-6" />, description: "Focused on India's diversity", gradient: "from-orange-500 to-amber-500" },
-    { label: "States", value: "9+", icon: <MapPin className="w-6 h-6" />, description: "Across the nation", gradient: "from-violet-500 to-purple-500" },
-    { label: "Sacred Sites", value: "15+", icon: <Sparkles className="w-6 h-6" />, description: "Temples & spiritual places", gradient: "from-blue-500 to-cyan-500" },
-    { label: "Photos Taken", value: "2K+", icon: <Camera className="w-6 h-6" />, description: "Memories captured", gradient: "from-emerald-500 to-teal-500" }
-  ];
+  const gearList = useMemo(() => [
+    { type: "Primary Body", model: "Sony α7 IV", spec: "Full-Frame Mirrorless" },
+    { type: "Prime Lens", model: "Sony 35mm f/1.4", spec: "G-Master Series" },
+    { type: "Wide Zoom", model: "Sony 16-35mm f/2.8", spec: "Architecture/Landscapes" },
+    { type: "Drone", model: "DJI Mini 3 Pro", spec: "Aerial Perspectives" },
+    { type: "Audio", model: "Rode Wireless GO II", spec: "Ambient/Dialogue" },
+    { type: "Pack", model: "Wandrd Prvke 31L", spec: "Weather-Resistant" }
+  ], []);
 
-  const favoritePlaces = [
-    { name: "Varanasi", type: "Spiritual", icon: <Sparkles className="w-4 h-4" />, color: "from-orange-500 to-amber-500" },
-    { name: "Darjeeling", type: "Mountain", icon: <Mountain className="w-4 h-4" />, color: "from-emerald-500 to-teal-500" },
-    { name: "Somnath", type: "Coastal", icon: <Waves className="w-4 h-4" />, color: "from-blue-500 to-sky-500" },
-    { name: "Vrindavan", type: "Cultural", icon: <Heart className="w-4 h-4" />, color: "from-rose-500 to-pink-500" }
-  ];
+  const philosophyItems = useMemo(() => [
+    { title: "Meaning Over Miles", icon: <Compass className="w-5 h-5" />, desc: "Distance is an illusion. I'd rather spend three days sitting silently in one courtyard than rush through ten temples in a day." },
+    { title: "Respect & Learn", icon: <BookOpen className="w-5 h-5" />, desc: "Every shrine has its rules, its timeline, and its keepers. Understanding local traditions takes priority over getting the perfect shot." },
+    { title: "Capture to Preserve", icon: <Camera className="w-5 h-5" />, desc: "Photography is my anchor to memory. The goal is to record the atmosphere and the geometry so it can be shared with those who cannot make the journey." },
+    { title: "Seek the Dawn", icon: <Sunrise className="w-5 h-5" />, desc: "The truest essence of spiritual India reveals itself in the quiet hours of Brahmamuhurtha, long before the crowds arrive." }
+  ], []);
+
+  const metricsStats = useMemo(() => [
+    { label: "States Documented", value: "09", desc: "Pan-India Coverage" },
+    { label: "Sacred Sites", value: "25", desc: "Temples & Monasteries" },
+    { label: "Distance (KM)", value: "8K", desc: "Overland Transit" },
+    { label: "Archives", value: "2K", desc: "Photographs Processed" }
+  ], []);
+
+  const movementPatterns = useMemo(() => [
+    { label: "Prime Season", value: "Winter (Oct-Feb)" },
+    { label: "Accommodation", value: "Dharamshalas" },
+    { label: "Transit Mode", value: "Rail & Overland" },
+    { label: "Pacing", value: "Slow / Immersive" }
+  ], []);
+
+  // ✅ Memoized tab change handler
+  const handleTabChange = useCallback((tabId) => {
+    setActiveTab(tabId);
+  }, []);
+
+  // ✅ Memoized profile image URL (could be moved to a constant)
+  const profileImageUrl = useMemo(() => 
+    "https://res.cloudinary.com/dla8tkflq/image/upload/v1767921620/1_djsnby.jpg",
+  []);
 
   return (
-    <section id="parichay" className="relative py-12 md:py-24 bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
-        
-        <motion.div 
-          animate={{ 
-            x: [0, 100, 0],
-            y: [0, 50, 0],
-            rotate: [0, 180, 360]
-          }}
-          transition={{ 
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute top-20 left-4 md:left-10 w-48 md:w-96 h-48 md:h-96 bg-gradient-to-br from-orange-500/5 via-transparent to-purple-500/5 rounded-full blur-3xl"
-        />
-        <motion.div 
-          animate={{ 
-            x: [0, -100, 0],
-            y: [0, -50, 0],
-            rotate: [360, 180, 0]
-          }}
-          transition={{ 
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute bottom-20 right-4 md:right-10 w-48 md:w-96 h-48 md:h-96 bg-gradient-to-tr from-blue-500/5 via-transparent to-emerald-500/5 rounded-full blur-3xl"
-        />
+    <section id="parichay" className="min-h-screen bg-black text-white relative border-t border-white/5 py-24 select-none overflow-hidden">
+      
+      {/* ✅ Reduced background ambience for performance */}
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+        <div className="absolute top-1/4 right-0 w-[300px] h-[300px] bg-white/[0.01] rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/3 w-[1px] h-full bg-gradient-to-b from-transparent via-white/[0.02] to-transparent" />
       </div>
 
-      <Container className="relative z-10 px-4 sm:px-6">
-        {/* Header */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 w-full">
+        
+        {/* HEADER SECTION */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-8 md:mb-16"
+          transition={{ duration: 0.6, ease }}
+          className="mb-16 md:mb-24 space-y-4"
         >
-          <div className="inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 rounded-full bg-gray-900/50 backdrop-blur-sm border border-gray-800 mb-6 md:mb-8">
-            <div className="w-4 md:w-8 h-px bg-gradient-to-r from-transparent to-gray-700" />
-            <Compass className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
-            <span className="text-xs md:text-sm text-gray-400 tracking-wider md:tracking-widest">THE TRAVELER'S STORY</span>
-            <div className="w-4 md:w-8 h-px bg-gradient-to-l from-transparent to-gray-700" />
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[10px] text-white/20 tracking-[0.3em] uppercase">05 // परिचय (IDENTITY)</span>
+            <div className="w-12 h-[1px] bg-white/10" />
+            <span className="text-white/40 font-mono text-[10px] tracking-widest uppercase">The Author</span>
           </div>
-
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 md:mb-8 tracking-tight"
-          >
-            <span className="text-white block">Behind the</span>
-            <span className="block mt-2 md:mt-4">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-red-400">
-                Lens
-              </span>
-            </span>
-          </motion.h1>
-
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-8 md:mb-12 leading-relaxed px-4"
-          >
-            Every journey tells a story, and every destination leaves a mark on the soul. 
-            This is my collection of moments, memories, and musings from the spiritual path.
-          </motion.p>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extralight tracking-tight leading-none">
+            Behind The <span className="text-white/20 font-light font-devanagari">लेंस</span>
+          </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-12 md:mb-20">
-          {/* Left Column - Profile & Stats */}
-          <div className="lg:col-span-1">
-            <div className="space-y-6 md:space-y-8">
-              {/* Profile Card */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="group relative bg-gradient-to-b from-gray-900/90 to-gray-950/90 rounded-2xl md:rounded-3xl overflow-hidden border border-gray-800 shadow-xl md:shadow-2xl backdrop-blur-sm"
-              >
-                <div className="relative h-48 md:h-64 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-purple-500/10 to-emerald-500/10" />
-                  
-                  <div className="relative h-full flex items-end justify-center p-4 md:p-8">
-                    <div className="relative">
-                      <div className="absolute -inset-2 md:-inset-4 bg-gradient-to-r from-orange-500 to-purple-500 rounded-full blur-lg md:blur-xl opacity-30" />
-                      <div className="relative w-24 h-24 md:w-40 md:h-40 rounded-full border-4 border-gray-900 shadow-xl md:shadow-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-3xl md:text-5xl">🙏</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+        {/* HERO PROFILE BLOCK */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 mb-20 lg:mb-32">
+          
+          {/* Left Portrait Image */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, ease }}
+            className="col-span-1 lg:col-span-5 relative"
+          >
+            <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-neutral-900 border border-white/10">
+              {/* ✅ Optimized image with loading="lazy" */}
+              <div 
+                className="absolute inset-0 bg-cover bg-center grayscale-[0.3] hover:grayscale-0 transition-all duration-1000 scale-105 hover:scale-100"
+                style={{ backgroundImage: `url(${profileImageUrl})` }}
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
+              <div className="absolute inset-0 border border-white/5 rounded-2xl" />
+              
+              <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
+                <div>
+                  <div className="font-mono text-[9px] text-white/40 uppercase tracking-widest mb-1">Visual Storyteller</div>
+                  <div className="text-xl font-light text-white tracking-wide">Anoj Kumar</div>
                 </div>
-
-                <div className="p-4 md:p-8 pt-0">
-                  <div className="relative -top-8 md:-top-10 text-center">
-                    <h3 className="text-lg md:text-2xl font-bold text-white mb-1 md:mb-2">
-                      Spiritual Traveler
-                    </h3>
-                    <div className="flex items-center justify-center gap-1 md:gap-2 text-gray-400 text-sm md:text-base mb-3 md:mb-4">
-                      <MapPin className="w-3 h-3 md:w-4 md:h-4" />
-                      <span>Exploring India</span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-4 md:mb-6">
-                      <span className="px-2 py-1 md:px-3 md:py-1 bg-orange-500/10 text-orange-300 rounded-full text-xs md:text-sm font-medium border border-orange-500/30">
-                        Pilgrim
-                      </span>
-                      <span className="px-2 py-1 md:px-3 md:py-1 bg-purple-500/10 text-purple-300 rounded-full text-xs md:text-sm font-medium border border-purple-500/30">
-                        Storyteller
-                      </span>
-                      <span className="px-2 py-1 md:px-3 md:py-1 bg-emerald-500/10 text-emerald-300 rounded-full text-xs md:text-sm font-medium border border-emerald-500/30">
-                        Photographer
-                      </span>
-                    </div>
-
-                    <p className="text-gray-400 text-xs md:text-sm leading-relaxed mb-4 md:mb-8 px-2">
-                      Capturing moments, seeking meaning, and sharing stories from India's sacred landscapes.
-                    </p>
-                  </div>
+                <div className="w-10 h-10 rounded-full border border-white/10 bg-black/40 backdrop-blur-md flex items-center justify-center">
+                  <Camera className="w-4 h-4 text-white/60" />
                 </div>
-              </motion.div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 md:gap-4">
-                {travelStats.map((stat, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ y: isMobile ? 0 : -4 }}
-                    className="group relative p-3 md:p-4 rounded-xl md:rounded-2xl bg-gradient-to-br from-gray-900/50 to-gray-950/50 backdrop-blur-sm border border-gray-800 hover:border-gray-700 transition-all duration-300"
-                  >
-                    <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
-                      <div className={`p-1.5 md:p-2 rounded-lg md:rounded-lg bg-gradient-to-br ${stat.gradient}`}>
-                        <div className="text-white">
-                          {React.cloneElement(stat.icon, { className: "w-4 h-4 md:w-6 md:h-6" })}
-                        </div>
-                      </div>
-                      <div>
-                        <div className={`text-lg md:text-2xl font-bold bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent`}>
-                          {stat.value}
-                        </div>
-                        <div className="text-xs md:text-sm font-medium text-gray-300">{stat.label}</div>
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500 line-clamp-2">{stat.description}</div>
-                    
-                    {/* Corner accent */}
-                    <div className={`absolute top-0 right-0 w-4 h-4 md:w-6 md:h-6 border-t border-r ${stat.gradient.replace('from-', 'border-').replace('to-', '').split(' ')[0]}/30 rounded-tr-xl md:rounded-tr-2xl`} />
-                  </motion.div>
-                ))}
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Right Column - Content */}
-          <div className="lg:col-span-2">
-            {/* Tabs */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
+          {/* Right Hero Typography */}
+          <div className="col-span-1 lg:col-span-7 flex flex-col justify-center">
+            <motion.h3 
+              initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="flex flex-wrap gap-1 md:gap-2 mb-8 md:mb-12"
+              transition={{ duration: 0.6, delay: 0.1, ease }}
+              className="text-2xl sm:text-3xl md:text-4xl font-light leading-tight text-white mb-6"
             >
-              {tabs.map((tab) => (
-                <motion.button
-                  key={tab.id}
-                  whileHover={{ scale: isMobile ? 1 : 1.05, y: isMobile ? 0 : -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`group px-3 py-2 md:px-6 md:py-4 rounded-lg md:rounded-xl text-xs md:text-sm font-medium transition-all duration-300 flex items-center gap-1.5 md:gap-3 backdrop-blur-sm border ${
-                    activeTab === tab.id
-                      ? `bg-gradient-to-r from-orange-500 to-purple-500 text-white shadow-md md:shadow-lg`
-                      : 'bg-gray-900/30 text-gray-300 hover:bg-gray-800/30 border-gray-800'
-                  }`}
-                >
-                  {React.cloneElement(tab.icon, { className: "w-3 h-3 md:w-4 md:h-4" })}
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-                </motion.button>
-              ))}
-            </motion.div>
+              "I don't just photograph places; I attempt to capture the absolute silence, devotion, and scale of India's spiritual geometry."
+            </motion.h3>
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2, ease }}
+              className="text-white/40 font-light leading-relaxed max-w-xl text-sm md:text-base mb-10"
+            >
+              Every journey tells a story, and every destination leaves a mark on the soul. Traversing ancient paths through India's heartlands, I document the intersection of human faith and timeless architecture.
+            </motion.p>
 
-            {/* Tab Content */}
-            <div className="space-y-8 md:space-y-12">
-              {/* Story Tab */}
-              {activeTab === "story" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-6 md:space-y-8"
-                >
-                  <div>
-                    <h3 className="text-xl md:text-3xl font-bold text-white mb-4 md:mb-6">
-                      The Journey Begins
-                    </h3>
-                    <div className="space-y-4 md:space-y-6">
-                      <p className="text-sm md:text-lg text-gray-300 leading-relaxed">
-                        My first pilgrimage to <span className="font-semibold text-orange-400">Varanasi</span> in 2023 wasn't just a trip—it was a transformation. Standing on the ancient ghats at sunrise, watching devotees perform their rituals, I realized travel isn't about ticking boxes. It's about <span className="font-semibold text-purple-400">connecting with the soul of a place</span>.
-                      </p>
-                      
-                      <div className="relative rounded-lg md:rounded-2xl p-4 md:p-8 bg-gradient-to-r from-gray-900/50 to-gray-950/50 border-l-2 md:border-l-4 border-orange-500 backdrop-blur-sm">
-                        <Sparkles className="absolute -top-2 -left-2 md:-top-3 md:-left-3 w-5 h-5 md:w-8 md:h-8 text-orange-500" />
-                        <p className="text-sm md:text-lg italic text-gray-300">
-                          "Traveling through India's sacred sites taught me that every temple, every river, every mountain has a story waiting to be heard. My camera captures images, but my heart captures memories."
-                        </p>
-                      </div>
-                      
-                      <p className="text-sm md:text-lg text-gray-300 leading-relaxed">
-                        Since that moment, I've dedicated myself to exploring <span className="font-semibold text-emerald-400">India's spiritual heritage</span>. From the Himalayan peaks of Darjeeling to the coastal temples of Somnath, each destination has added a new chapter to my spiritual journey.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Favorite Places */}
-                  <div>
-                    <h4 className="text-lg md:text-xl font-bold text-white mb-4 md:mb-6 flex items-center gap-2 md:gap-3">
-                      <Heart className="w-4 h-4 md:w-6 md:h-6 text-rose-400" />
-                      Favorite Sacred Destinations
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                      {favoritePlaces.map((place, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 20 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          whileHover={{ y: isMobile ? 0 : -4 }}
-                          className="group relative p-4 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-br from-gray-900/50 to-gray-950/50 backdrop-blur-sm border border-gray-800 hover:border-gray-700 transition-all duration-300"
-                        >
-                          <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                            <div className={`p-2 md:p-3 rounded-lg md:rounded-lg bg-gradient-to-br ${place.color}`}>
-                              <div className="text-white">{React.cloneElement(place.icon, { className: "w-3 h-3 md:w-4 md:h-4" })}</div>
-                            </div>
-                            <div>
-                              <div className="font-semibold text-white text-sm md:text-base">{place.name}</div>
-                              <div className="text-xs md:text-sm text-gray-400">{place.type}</div>
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Sacred site that touched my soul
-                          </div>
-                          
-                          {/* Hover indicator */}
-                          <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <ArrowRight className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Philosophy Tab */}
-              {activeTab === "philosophy" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-6 md:space-y-8"
-                >
-                  <div>
-                    <h3 className="text-xl md:text-3xl font-bold text-white mb-4 md:mb-6">
-                      My Travel Philosophy
-                    </h3>
-                    <div className="space-y-4 md:space-y-6">
-                      {[
-                        {
-                          title: "Meaning Over Miles",
-                          icon: <Sparkles className="w-4 h-4 md:w-6 md:h-6" />,
-                          description: "It's not about how far you go, but how deeply you experience where you are. I'd rather spend three days truly connecting with one temple than rush through ten.",
-                          gradient: "from-orange-500 to-amber-500"
-                        },
-                        {
-                          title: "Respect & Learn",
-                          icon: <BookOpen className="w-4 h-4 md:w-6 md:h-6" />,
-                          description: "Every destination has its customs, stories, and people. I travel to learn, not just to see. Understanding local traditions enriches the journey.",
-                          gradient: "from-violet-500 to-purple-500"
-                        },
-                        {
-                          title: "Capture to Share",
-                          icon: <Camera className="w-4 h-4 md:w-6 md:h-6" />,
-                          description: "Photography is my way of preserving moments, but sharing stories is how I keep them alive. Every photo has a story worth telling.",
-                          gradient: "from-blue-500 to-cyan-500"
-                        }
-                      ].map((principle, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 20 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.2 }}
-                          whileHover={{ y: isMobile ? 0 : -4 }}
-                          className="group p-4 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-br from-gray-900/50 to-gray-950/50 backdrop-blur-sm border border-gray-800 hover:border-gray-700 transition-all duration-300"
-                        >
-                          <div className="flex flex-col sm:flex-row items-start gap-4 md:gap-6">
-                            <div className={`p-3 md:p-4 rounded-lg md:rounded-xl bg-gradient-to-br ${principle.gradient}`}>
-                              <div className="text-white">{principle.icon}</div>
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-3">
-                                {principle.title}
-                              </h4>
-                              <p className="text-gray-300 text-sm md:text-base leading-relaxed">
-                                {principle.description}
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Gear Tab */}
-              {activeTab === "gear" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-6 md:space-y-8"
-                >
-                  <div>
-                    <h3 className="text-xl md:text-3xl font-bold text-white mb-4 md:mb-6">
-                      My Travel Companions
-                    </h3>
-                    <p className="text-sm md:text-lg text-gray-300 mb-6 md:mb-8 leading-relaxed">
-                      After years of spiritual travel across India, I've learned that the right gear can make all the difference. Here's what always travels with me:
-                    </p>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-                      {[
-                        {
-                          name: "Mirrorless Camera",
-                          brand: "Sony α7 IV",
-                          purpose: "Capturing temple architecture & rituals",
-                          icon: <Camera className="w-4 h-4 md:w-5 md:h-5" />,
-                          gradient: "from-orange-500 to-amber-500"
-                        },
-                        {
-                          name: "Travel Journal",
-                          brand: "Handmade Leather",
-                          purpose: "Recording thoughts & experiences",
-                          icon: <BookOpen className="w-4 h-4 md:w-5 md:h-5" />,
-                          gradient: "from-violet-500 to-purple-500"
-                        },
-                        {
-                          name: "Portable Altar",
-                          brand: "Traditional Brass",
-                          purpose: "Morning prayers & meditation",
-                          icon: <Sparkles className="w-4 h-4 md:w-5 md:h-5" />,
-                          gradient: "from-blue-500 to-cyan-500"
-                        },
-                        {
-                          name: "Hiking Boots",
-                          brand: "Salomon",
-                          purpose: "Mountain temple treks",
-                          icon: <Mountain className="w-4 h-4 md:w-5 md:h-5" />,
-                          gradient: "from-emerald-500 to-teal-500"
-                        }
-                      ].map((item, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 20 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          whileHover={{ y: isMobile ? 0 : -4 }}
-                          className="group p-4 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-br from-gray-900/50 to-gray-950/50 backdrop-blur-sm border border-gray-800 hover:border-gray-700 transition-all duration-300"
-                        >
-                          <div className="flex items-center gap-3 md:gap-4 mb-3 md:mb-4">
-                            <div className={`p-2 md:p-3 rounded-lg md:rounded-lg bg-gradient-to-br ${item.gradient}`}>
-                              <div className="text-white">{item.icon}</div>
-                            </div>
-                            <div>
-                              <div className="font-bold text-white text-sm md:text-base">{item.name}</div>
-                              <div className="text-xs md:text-sm text-gray-400">{item.brand}</div>
-                            </div>
-                          </div>
-                          <div className="text-xs md:text-sm text-gray-300">{item.purpose}</div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Stats Tab */}
-              {activeTab === "stats" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-6 md:space-y-8"
-                >
-                  <div>
-                    <h3 className="text-xl md:text-3xl font-bold text-white mb-4 md:mb-6">
-                      By The Numbers
-                    </h3>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-                      {[
-                        { label: "Years Traveling", value: "3", trend: "↑", gradient: "from-orange-500 to-amber-500" },
-                        { label: "Temples Visited", value: "25+", trend: "↑", gradient: "from-violet-500 to-purple-500" },
-                        { label: "Distance Covered", value: "8,450km", trend: "→", gradient: "from-blue-500 to-cyan-500" },
-                        { label: "Photos Shared", value: "500+", trend: "↑", gradient: "from-emerald-500 to-teal-500" }
-                      ].map((stat, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          whileInView={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="text-center p-3 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-br from-gray-900/50 to-gray-950/50 backdrop-blur-sm border border-gray-800"
-                        >
-                          <div className={`text-xl md:text-3xl font-bold bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent mb-1 md:mb-2`}>
-                            {stat.value}
-                          </div>
-                          <div className="text-xs md:text-sm text-gray-400">{stat.label}</div>
-                        </motion.div>
-                      ))}
-                    </div>
-                    
-                    <div className="space-y-4 md:space-y-6">
-                      <div>
-                        <h4 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 flex items-center gap-2 md:gap-3">
-                          <Sunrise className="w-4 h-4 md:w-6 md:h-6 text-orange-400" />
-                          Travel Patterns
-                        </h4>
-                        <div className="space-y-3 md:space-y-4">
-                          {[
-                            { activity: "Favorite Time to Travel", detail: "Winter months (Oct-Feb)" },
-                            { activity: "Preferred Stay", detail: "Temple dharamshalas & homestays" },
-                            { activity: "Travel Style", detail: "Slow, immersive, off-peak seasons" },
-                            { activity: "Documentation", detail: "Photos + written journals" }
-                          ].map((pattern, index) => (
-                            <div key={index} className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center py-2 md:py-3 border-b border-gray-800">
-                              <span className="text-sm md:text-base text-gray-300 mb-1 sm:mb-0">{pattern.activity}</span>
-                              <span className="font-semibold text-white text-sm md:text-base">{pattern.detail}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-
-            {/* Social Links - Updated with clickable YouTube and Instagram links */}
-            <div className="mt-8 md:mt-16 pt-6 md:pt-12 border-t border-gray-800">
-              <h4 className="text-lg md:text-xl font-bold text-white mb-4 md:mb-6 flex items-center gap-2 md:gap-3">
-                <Users className="w-4 h-4 md:w-6 md:h-6 text-blue-400" />
-                Follow the Journey
-              </h4>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 max-w-md">
-                {socialLinks.map((social, index) => (
-                  <motion.a
-                    key={index}
-                    href={social.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ y: isMobile ? 0 : -4 }}
-                    className={`group relative p-4 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-br ${social.color} overflow-hidden border border-gray-800 hover:border-white/20 transition-all duration-300 cursor-pointer`}
-                  >
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                        <div className="text-white">{React.cloneElement(social.icon, { className: "w-4 h-4 md:w-5 md:h-5" })}</div>
-                        <span className="font-semibold text-white text-sm md:text-base">{social.platform}</span>
-                      </div>
-                      <div className="text-xs md:text-sm text-gray-200">{social.handle}</div>
-                      <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <ExternalLink className="w-3 h-3 md:w-4 h-4 text-white" />
-                      </div>
-                    </div>
-                    
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </motion.a>
-                ))}
+            {/* Quick Micro-Stats */}
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3, ease }}
+              className="grid grid-cols-2 md:grid-cols-3 gap-6 pt-6 border-t border-white/5"
+            >
+              <div className="space-y-1">
+                <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 block">Focus</span>
+                <span className="text-white/80 font-light text-sm">Spiritual Heritage</span>
               </div>
-              
-              {/* Optional: You can add this note if you want */}
-              <p className="text-xs md:text-sm text-gray-500 mt-3 md:mt-4">
-                Click to follow my latest travel stories and videos
-              </p>
-            </div>
+              <div className="space-y-1">
+                <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 block">Base</span>
+                <span className="text-white/80 font-light text-sm flex items-center gap-1.5">
+                  <MapPin className="w-3 h-3 text-white/30" /> India
+                </span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] font-mono uppercase tracking-widest text-white/30 block">Medium</span>
+                <span className="text-white/80 font-light text-sm">Digital / Mirrorless</span>
+              </div>
+            </motion.div>
           </div>
         </div>
 
-        {/* Updated CTA - No links, single page site */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative rounded-xl md:rounded-3xl overflow-hidden border border-gray-800 bg-gradient-to-br from-gray-900/50 to-gray-950/50 backdrop-blur-sm p-6 md:p-12 text-center"
-        >
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxjaXJjbGUgY3g9IjEwJSIgY3k9IjEwJSIgcj0iMSIgZmlsbD0iI2Y1OWUwYiIvPjwvc3ZnPgo=')]"></div>
-          </div>
+        {/* INTERACTIVE DOSSIER TABS SYSTEM */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 border-t border-white/5 pt-16">
           
-          <div className="relative z-10">
-            <h3 className="text-2xl md:text-4xl font-bold text-white mb-4 md:mb-6">
-              The Journey Continues
-            </h3>
-            <p className="text-gray-300 text-sm md:text-lg mb-6 md:mb-10 max-w-2xl mx-auto">
-              My spiritual travels through India are an ongoing story. Every journey brings new insights, 
-              and every destination reveals new layers of meaning. The path unfolds one step at a time.
-            </p>
-            
-            <div className="flex flex-col items-center justify-center gap-4 md:gap-6">
-              <div className="flex items-center gap-2 md:gap-3 text-gray-400">
-                <Compass className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
-                <span className="text-sm md:text-lg">Next Destination: The Himalayas</span>
-                <Compass className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-              </div>
-              <div className="text-xs md:text-sm text-gray-500">
-                Follow along for stories and photos from the next chapter
-              </div>
+          {/* Tab Navigation Column */}
+          <div className="col-span-1 lg:col-span-3">
+            <div className="sticky top-24 space-y-2 flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 scrollbar-none snap-x snap-mandatory">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`relative w-full text-left px-4 md:px-6 py-4 rounded-xl transition-all duration-300 snap-center min-w-[200px] lg:min-w-0 ${
+                      isActive ? 'bg-white/[0.03] border border-white/10' : 'bg-transparent border border-transparent hover:bg-white/[0.01]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between relative z-10">
+                      <span className={`text-sm md:text-base font-light tracking-wide transition-colors ${isActive ? 'text-white' : 'text-white/40'}`}>
+                        {tab.label}
+                      </span>
+                      <span className={`font-devanagari transition-colors ${isActive ? 'text-white/30' : 'text-white/10'}`}>
+                        {tab.hindi}
+                      </span>
+                    </div>
+                    {isActive && (
+                      <motion.div 
+                        layoutId="activeTabIndicator"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-1/2 bg-white rounded-r-full hidden lg:block"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
-        </motion.div>
-      </Container>
+
+          {/* Dynamic Content Viewport */}
+          <div className="col-span-1 lg:col-span-9 min-h-[400px]">
+            <AnimatePresence mode="wait">
+              
+              {/* TAB 1: NARRATIVE */}
+              {activeTab === "story" && (
+                <motion.div
+                  key="story"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.4, ease }}
+                  className="space-y-8"
+                >
+                  <h3 className="text-2xl font-light tracking-tight text-white mb-6">The Genesis of the Journey</h3>
+                  <div className="space-y-6 text-sm md:text-base text-white/50 font-light leading-relaxed max-w-3xl">
+                    <p>
+                      My first profound pilgrimage to Varanasi in 2023 wasn't just a physical trip—it was a catalyst for internal transformation. Standing on the ancient ghats at sunrise, watching devotees perform rituals that have remained unchanged for millennia, I realized travel shouldn't be about ticking geographic boxes.
+                    </p>
+                    
+                    {/* Pull Quote Block */}
+                    <div className="py-6 px-8 my-8 border-l border-white/20 bg-white/[0.01] rounded-r-2xl relative">
+                      <div className="absolute top-4 left-4 w-12 h-12 text-white/5">
+                        <svg fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                        </svg>
+                      </div>
+                      <p className="text-lg md:text-xl text-white/80 font-light italic relative z-10 leading-relaxed">
+                        "Every temple, every river, every mountain has a story waiting to be heard. The camera captures the photons, but the mind must capture the reverence."
+                      </p>
+                    </div>
+
+                    <p>
+                      Since that moment, my focus shifted entirely. I dedicated myself to exploring India's deep spiritual heritage. From the freezing Himalayan peaks of Darjeeling to the coastal temples of Somnath, each destination serves as a masterclass in faith, scale, and time.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* TAB 2: PHILOSOPHY */}
+              {activeTab === "philosophy" && (
+                <motion.div
+                  key="philosophy"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.4, ease }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+                >
+                  {philosophyItems.map((phil, idx) => (
+                    <div key={idx} className="p-6 md:p-8 rounded-2xl bg-white/[0.01] border border-white/5 hover:border-white/10 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 mb-6">
+                        {phil.icon}
+                      </div>
+                      <h4 className="text-lg text-white tracking-wide font-light mb-3">{phil.title}</h4>
+                      <p className="text-sm text-white/40 font-light leading-relaxed">{phil.desc}</p>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+
+              {/* TAB 3: EQUIPMENT */}
+              {activeTab === "gear" && (
+                <motion.div
+                  key="gear"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.4, ease }}
+                >
+                  <div className="mb-8 max-w-2xl">
+                    <h3 className="text-2xl font-light tracking-tight text-white mb-4">Hardware & Logistics</h3>
+                    <p className="text-sm md:text-base text-white/40 font-light">
+                      The terrain is unpredictable, and light is fleeting. Carrying reliable, weather-sealed equipment is not a luxury, but a necessity for documentation.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/5 overflow-hidden">
+                    <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 bg-white/[0.02] font-mono text-[9px] uppercase tracking-widest text-white/30">
+                      <div className="col-span-4 md:col-span-3">Classification</div>
+                      <div className="col-span-8 md:col-span-5">Model / Designation</div>
+                      <div className="hidden md:block col-span-4">Primary Application</div>
+                    </div>
+                    
+                    <div className="divide-y divide-white/5 bg-white/[0.01]">
+                      {gearList.map((gear, idx) => (
+                        <div key={idx} className="grid grid-cols-12 gap-4 px-6 py-5 hover:bg-white/[0.02] transition-colors items-center group">
+                          <div className="col-span-4 md:col-span-3 text-xs text-white/40 font-light">{gear.type}</div>
+                          <div className="col-span-8 md:col-span-5 text-sm text-white/80 font-medium tracking-wide group-hover:text-white transition-colors">{gear.model}</div>
+                          <div className="hidden md:block col-span-4 text-xs text-white/30 font-light">{gear.spec}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* TAB 4: METRICS */}
+              {activeTab === "metrics" && (
+                <motion.div
+                  key="metrics"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.4, ease }}
+                >
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
+                    {metricsStats.map((stat, idx) => (
+                      <div key={idx} className="p-6 md:p-8 rounded-2xl bg-white/[0.01] border border-white/5 text-center flex flex-col justify-center">
+                        <div className="text-4xl md:text-5xl font-extralight text-white mb-2">{stat.value}</div>
+                        <div className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">{stat.label}</div>
+                        <div className="text-xs text-white/20 font-light">{stat.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-8 rounded-2xl bg-white/[0.01] border border-white/5">
+                    <h4 className="text-sm font-mono tracking-widest uppercase text-white/40 mb-6">Movement Patterns</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                      {movementPatterns.map((pattern, idx) => (
+                        <div key={idx} className="flex justify-between items-end border-b border-white/5 pb-3">
+                          <span className="text-sm text-white/60 font-light">{pattern.label}</span>
+                          <span className="text-white font-medium text-sm tracking-wide">{pattern.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* SOCIAL NETWORK & CTA FOOTER */}
+        <div className="mt-32 border-t border-white/5 pt-16">
+          <div className="flex items-center gap-3 mb-10">
+            <span className="font-mono text-[10px] text-white/20 tracking-[0.3em] uppercase">06 // संजाल (NETWORK)</span>
+            <div className="flex-1 h-[1px] bg-gradient-to-r from-white/10 to-transparent" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl">
+            {socialLinks.map((social, idx) => (
+              <a
+                key={idx}
+                href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center justify-between p-6 rounded-2xl bg-white/[0.01] border border-white/5 hover:border-white/20 hover:bg-white/[0.03] transition-all duration-300"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 group-hover:text-white transition-colors">
+                    {social.icon}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-light text-white tracking-wide">{social.platform}</h4>
+                    <p className="text-xs font-mono text-white/30 tracking-widest">{social.handle}</p>
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white/30 group-hover:bg-white group-hover:text-black transition-all">
+                  <ArrowUpRight className="w-4 h-4" />
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+
+      </div>
     </section>
   );
 }

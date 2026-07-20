@@ -1,217 +1,209 @@
-import Container from "./Container";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { 
-  Heart, Compass, MapPin, Camera, BookOpen,
-  Instagram, Twitter, Mail, ArrowUp,
-  Sparkles, Mountain, Waves, Globe
+  Heart, Compass, ArrowUp, Sparkles, 
+  Mountain, Waves, Globe, ArrowUpRight
 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 function Footer() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  // ✅ Memoized static data
+  const directoryLinks = useMemo(() => [
+    { label: "The Horizon (Home)", href: "#ghar" },
+    { label: "Sacred Spaces (Destinations)", href: "#sthan" },
+    { label: "Visual Memory (Gallery)", href: "#gallery" },
+    { label: "The Author (About)", href: "#parichay" }
+  ], []);
+
+  const journeyTypes = useMemo(() => [
+    { type: "Spiritual Centers", icon: <Sparkles className="w-3.5 h-3.5" /> },
+    { type: "High Altitudes", icon: <Mountain className="w-3.5 h-3.5" /> },
+    { type: "Coastal Shrines", icon: <Waves className="w-3.5 h-3.5" /> },
+    { type: "Heritage Sites", icon: <Globe className="w-3.5 h-3.5" /> }
+  ], []);
+
+  const socialLinks = useMemo(() => [
+    { name: "Instagram", url: "https://www.instagram.com/travelwithanoj?igsh=ajR3cWVnN3gwMm5q" },
+    { name: "YouTube", url: "https://www.youtube.com/@yourchannel" }
+  ], []);
+
+  // ✅ Memoized scroll handler with cleanup
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
     
+    let ticking = false;
+    let rafId = null;
+
     const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 500);
+      if (!ticking) {
+        rafId = requestAnimationFrame(() => {
+          setShowScrollTop(window.scrollY > 800);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
     
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
-  const scrollToTop = () => {
+  // ✅ Memoized scroll to top function
+  const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const journeyStats = [
-    { label: "Destinations", value: "19+", icon: <MapPin className="w-4 h-4" /> },
-    { label: "Photos", value: "2,450+", icon: <Camera className="w-4 h-4" /> },
-    { label: "Stories", value: "47", icon: <BookOpen className="w-4 h-4" /> },
-    { label: "Years", value: "3", icon: <Compass className="w-4 h-4" /> }
-  ];
-
-  const journeyTypes = [
-    { type: "Spiritual", icon: <Sparkles className="w-4 h-4" />, count: 8 },
-    { type: "Mountains", icon: <Mountain className="w-4 h-4" />, count: 3 },
-    { type: "Coastal", icon: <Waves className="w-4 h-4" />, count: 2 },
-    { type: "Cultural", icon: <Globe className="w-4 h-4" />, count: 6 }
-  ];
-
-  const recentJourneys = [
-    "Varanasi", "Darjeeling", "Somnath", "Vrindavan"
-  ];
+  }, []);
 
   return (
-    <footer className="relative w-full bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 border-t border-gray-200 dark:border-gray-800">
-      {/* Subtle Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          backgroundSize: '60px 60px'
-        }} />
+    <footer className="relative w-full bg-black text-white border-t border-white/5 pt-20 pb-8 overflow-hidden select-none">
+      
+      {/* ✅ Reduced background ambience for performance */}
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+        <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-white/[0.01] rounded-full blur-3xl" />
       </div>
 
-      {/* Scroll to Top - Responsive positioning */}
-      {showScrollTop && (
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          onClick={scrollToTop}
-          className="fixed z-50 p-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/50 transition-all duration-300
-          bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8"
-        >
-          <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5" />
-        </motion.button>
-      )}
+      {/* 🔝 MINIMAL SCROLL TO TOP */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3 }}
+            onClick={scrollToTop}
+            className="fixed z-50 bottom-8 right-8 w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/10 bg-black/50 backdrop-blur-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all focus:outline-none"
+            aria-label="Scroll to top"
+          >
+            <ArrowUp className="w-4 h-4" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
-      <Container className="relative z-10 px-4 sm:px-6">
-        {/* Main Content */}
-        <div className="py-8 sm:py-10 md:py-12">
-          {/* Journey Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-10 md:mb-12">
-            {journeyStats.map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="text-center p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700"
-              >
-                <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-orange-500/10 to-amber-500/10 mb-2 sm:mb-3">
-                  <div className="text-orange-600 dark:text-orange-400">
-                    {stat.icon}
-                  </div>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  {stat.label}
-                </div>
-              </motion.div>
-            ))}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 w-full">
+        
+        {/* REFINED ELEGANT TYPOGRAPHY */}
+        <div className="pb-12 md:pb-16 border-b border-white/5">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="font-mono text-[10px] text-white/20 tracking-[0.3em] uppercase">07 // अंत (CONCLUSION)</span>
+            <div className="w-12 h-[1px] bg-white/10" />
+            <span className="text-white/40 font-mono text-[10px] tracking-widest uppercase">The Horizon Awaits</span>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-8 sm:mb-10 md:mb-12">
-            {/* Brand & Description */}
-            <div className="space-y-3 sm:space-y-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500">
-                  <Compass className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div>
-                  <div className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                    Spiritual Odyssey
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                    Sacred Travel Journal
-                  </div>
-                </div>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed">
-                Documenting spiritual journeys across India's sacred landscapes through photography and stories.
-              </p>
-            </div>
-
-            {/* Journey Types */}
-            <div className="space-y-3 sm:space-y-4">
-              <h4 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
-                Journey Types
-              </h4>
-              <div className="space-y-2 sm:space-y-3">
-                {journeyTypes.map((type, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="text-orange-600 dark:text-orange-400">
-                        {type.icon}
-                      </div>
-                      <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                        {type.type}
-                      </span>
-                    </div>
-                    <span className="text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full bg-gradient-to-r from-orange-500/10 to-amber-500/10 text-orange-600 dark:text-orange-400">
-                      {type.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Recent Destinations */}
-            <div className="space-y-3 sm:space-y-4">
-              <h4 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
-                Recent Journeys
-              </h4>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {recentJourneys.map((destination, index) => (
-                  <span
-                    key={index}
-                    className="px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm rounded-full bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
-                  >
-                    {destination}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-700 to-transparent my-6 sm:my-8" />
-
-          {/* Bottom Section */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
-            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-                <span className="text-xs sm:text-sm">Made with love for travel</span>
-              </div>
-              <div className="hidden sm:block w-px h-4 bg-gray-300 dark:bg-gray-700" />
-              <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                © {currentYear} HorizonHub
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-              <div className="flex items-center gap-4">
-                <a
-                  href="https://instagram.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                >
-                  <Instagram className="w-4 h-4 sm:w-5 sm:h-5" />
-                </a>
-                <a
-                  href="https://twitter.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                >
-                  <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />
-                </a>
-              </div>
-              
-              <div className="hidden sm:block w-px h-4 bg-gray-300 dark:bg-gray-700" />
-              
-              <div className="flex items-center gap-4 text-xs sm:text-sm">
-                <a href="#" className="text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
-                  Privacy
-                </a>
-                <a href="#" className="text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
-                  Terms
-                </a>
-              </div>
-            </div>
-          </div>
+          
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-tight text-white max-w-4xl">
+            Beyond the horizon, every journey is an internal pilgrimage. <span className="text-white/20 font-devanagari font-light tracking-normal block mt-2 sm:inline sm:mt-0">अनंत क्षितिज</span>
+          </h2>
         </div>
-      </Container>
 
-      {/* Bottom Border */}
-      <div className="h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500" />
+        {/* ARCHITECTURAL GRID DIRECTORY */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8 py-12 md:py-16 border-b border-white/5">
+          
+          {/* Column 1: Identity & Mission */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                <Compass className="w-4 h-4 text-white/60" />
+              </div>
+              <div>
+                <h3 className="text-lg font-light tracking-wide text-white">Anoj Kumar</h3>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white/30">Visual Archive</div>
+              </div>
+            </div>
+            <p className="text-sm text-white/40 font-light leading-relaxed max-w-sm">
+              Documenting the profound intersection of human devotion, ancient geometry, and the timeless spiritual landscapes of India.
+            </p>
+          </div>
+
+          {/* Column 2: Navigation Directory */}
+          <div className="lg:col-span-3 space-y-6">
+            <h4 className="text-[10px] font-mono uppercase tracking-widest text-white/20">Directory</h4>
+            <div className="space-y-4">
+              {directoryLinks.map((link, idx) => (
+                <a 
+                  key={idx} 
+                  href={link.href}
+                  className="flex items-center justify-between border-b border-white/5 pb-2 group transition-all"
+                >
+                  <span className="text-sm text-white/40 font-light group-hover:text-white/80 transition-colors">{link.label}</span>
+                  <ArrowUpRight className="w-3 h-3 text-white/10 group-hover:text-white/40 transition-colors" />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Column 3: Topologies */}
+          <div className="lg:col-span-3 space-y-6">
+            <h4 className="text-[10px] font-mono uppercase tracking-widest text-white/20">Environments</h4>
+            <div className="space-y-4">
+              {journeyTypes.map((type, idx) => (
+                <div key={idx} className="flex items-center gap-3 group">
+                  <span className="text-white/30 transition-colors">{type.icon}</span>
+                  <span className="text-sm text-white/40 font-light transition-colors">{type.type}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Column 4: Network */}
+          <div className="lg:col-span-2 space-y-6">
+            <h4 className="text-[10px] font-mono uppercase tracking-widest text-white/20">Network</h4>
+            <div className="flex flex-col gap-3">
+              {socialLinks.map((link, idx) => (
+                <a
+                  key={idx}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center justify-between p-3 rounded-lg border border-transparent hover:border-white/10 hover:bg-white/[0.02] transition-all"
+                >
+                  <span className="text-sm text-white/40 font-light group-hover:text-white transition-colors">{link.name}</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-white/20 group-hover:text-white transition-colors" />
+                </a>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* BOTTOM METADATA BAR */}
+        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-2 text-white/30 text-[10px] sm:text-[11px] uppercase tracking-widest font-mono">
+              <Heart className="w-3 h-3 text-white/20" />
+              <span>Documented with reverence</span>
+            </div>
+            <div className="hidden sm:block w-px h-3 bg-white/10" />
+            <div className="text-[10px] font-mono text-white/20 uppercase tracking-widest">
+              © {currentYear} Anoj Kumar
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 sm:gap-6 text-[10px] font-mono text-white/20 uppercase tracking-widest">
+            <button 
+              onClick={() => {/* Handle privacy policy action */}}
+              className="hover:text-white transition-colors focus:outline-none"
+              aria-label="Privacy Policy"
+            >
+              Privacy
+            </button>
+            <button 
+              onClick={() => {/* Handle terms of service action */}}
+              className="hover:text-white transition-colors focus:outline-none"
+              aria-label="Terms of Service"
+            >
+              Terms
+            </button>
+            <span className="font-devanagari text-white/20 text-xs tracking-normal opacity-40 ml-2 hidden sm:inline">यात्रा एक प्रार्थना है</span>
+          </div>
+
+        </div>
+
+      </div>
     </footer>
   );
 }
